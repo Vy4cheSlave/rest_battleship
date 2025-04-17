@@ -1,0 +1,16 @@
+# app
+fastapi[standard]==0.113.0
+pydantic==2.8.0
+pydantic-settings==2.8.1
+websockets==15.0.1
+
+# db
+alembic==1.15.2
+asyncpg==0.30.0
+sqlmodel==0.0.24
+
+# jwt
+PyJWT==2.10.1
+
+# hash
+passlib[bcrypt]==1.7.4

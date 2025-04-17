@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  db:
+    # for SELinux
+    security_opt:
+      - label:disable
+    image: postgres:alpine
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_HOST=${DB_HOST}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+
+  app:
+    # for SELinux
+    security_opt:
+      - label:disable
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - 8080:8080
+    # working_dir: /app
+    # volumes:
+    #   - .:/app
+    depends_on:
+      - db
+
+volumes:
+  postgres-db:
