@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import SQLModel, Field, Relationship, Column, JSON
 from src.schemas import ShipPublic, GameBoardBase
 from typing import Optional
 
@@ -16,6 +16,8 @@ class GameBoard(GameBoardBase, table=True):
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "lazy": "joined"},
         )
     game: Optional["Game"] = Relationship(back_populates="players_lived_board")
+
+    checked_cells: list[str] = Field(sa_column=Column(JSON), default_factory=list)
 
     def remove_ship(self, ship: Ship):
         self.ships.remove(ship)

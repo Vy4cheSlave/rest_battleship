@@ -9,6 +9,8 @@ import random
 from pydantic import ValidationError
 import json
 from datetime import datetime
+from websockets.exceptions import ConnectionClosed
+from builtins import RuntimeError
 
 websoket_router = APIRouter()
 
@@ -200,16 +202,25 @@ async def play_room(
                 if manager.check_player(player2_id):
                     if game.next_step_player_name == player.username:
                         cell = data.x.lower() + str(data.y)
-                        # сделать проверку на то дублирующийся ли это ход
+                        if cell in game.players_lived_board[player2_lived_board_index].checked_cells:
+                            await manager.send_personal_message(
+                                message=f"Cell \"{cell}\" already checked.", 
+                                websocket=websocket
+                                )
+                            continue
                         await manager.send_message_play_room(
                             message=f"{player.username} has made a move on \"{cell}\"", 
                             first_player_websocket=websocket,
                             second_player_id=player2_id,
                             )
+
+                        game.players_lived_board[player2_lived_board_index].checked_cells.append(cell)
+
                         is_not_hitted = True
                         for ship_index, ship in enumerate(game.players_lived_board[player2_lived_board_index].ships[:]):
                             if cell in ship.location:
                                 is_not_hitted = False
+
                                 if len(ship.location) == 1:
                                     game.players_lived_board[player2_lived_board_index].remove_ship(ship)
                                     await manager.send_message_play_room(
@@ -262,19 +273,24 @@ async def play_room(
                     websocket=websocket,
                     )
 
-    except WebSocketDisconnect:
+    except: 
+        pass
+    finally:
         player.disabled = True
         await async_session.merge(player)
+        await async_session.commit()
 
         if not manager.check_player(player2_id):
-            game = active_games.get_game(game_sid)
-            if game is not None:
-                await async_session.merge(game)
+            await async_session.merge(game)
+            await async_session.commit()
             active_games.delete_game(game_sid)
 
-        await async_session.commit()
+        # await async_session.commit()
         manager.disconnect(player.id)
-        await manager.send_player_message(
-            message=f"Player \"{player.username}\" is disconnected",
-            player_id=player2_id,
-            )
+        try:
+            await manager.send_player_message(
+                message=f"Player \"{player.username}\" is disconnected",
+                player_id=player2_id,
+                )
+        except:
+            pass
